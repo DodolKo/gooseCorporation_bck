@@ -1,0 +1,276 @@
+<%- include('layout', { body: `
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-tachometer-alt me-2"></i>
+        Tableau de bord
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-1"></i>
+                Actualiser
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stats-card">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h3><%= statistics.currentVisitorsCount %></h3>
+                    <p>Visiteurs actuels</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-users fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stats-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h3><%= statistics.todayVisitors %></h3>
+                    <p>Visiteurs aujourd'hui</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-calendar-day fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stats-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h3><%= statistics.activeBadges %></h3>
+                    <p>Badges actifs</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-id-badge fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="stats-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1">
+                    <h3><%= statistics.activeStaff %></h3>
+                    <p>Personnel actif</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <i class="fas fa-user-tie fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Visitors -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Visiteurs actuellement dans le bâtiment
+                    <span class="badge bg-success ms-2"><%= statistics.currentVisitorsCount %></span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <% if (currentVisitors.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Entreprise</th>
+                                    <th>Raison</th>
+                                    <th>Visite</th>
+                                    <th>Entrée</th>
+                                    <th>Badge</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% currentVisitors.forEach(visitor => { %>
+                                    <tr>
+                                        <td>
+                                            <strong><%= visitor.firstName %> <%= visitor.lastName %></strong>
+                                        </td>
+                                        <td><%= visitor.email %></td>
+                                        <td>
+                                            <span class="text-muted">
+                                                <%= visitor.company || 'N/A' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">
+                                                <%= visitor.visitReason %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (visitor.staff) { %>
+                                                <i class="fas fa-user-tie me-1"></i>
+                                                <%= visitor.staff.firstName %> <%= visitor.staff.lastName %>
+                                            <% } else if (visitor.formation) { %>
+                                                <i class="fas fa-graduation-cap me-1"></i>
+                                                <%= visitor.formation.name %>
+                                            <% } else { %>
+                                                <span class="text-muted">-</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                <%= new Date(visitor.checkInTime).toLocaleString('fr-FR') %>
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <% if (visitor.badge && visitor.badge.isActive) { %>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>
+                                                    Actif
+                                                </span>
+                                            <% } else { %>
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-times me-1"></i>
+                                                    Inactif
+                                                </span>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="/admin/current-visitors" class="btn btn-primary">
+                            <i class="fas fa-eye me-2"></i>
+                            Voir tous les visiteurs actuels
+                        </a>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-4">
+                        <i class="fas fa-user-slash text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3 text-muted">Aucun visiteur actuellement dans le bâtiment</h5>
+                        <p class="text-muted">Les visiteurs apparaîtront ici dès qu'ils s'enregistreront.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    Actions rapides
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/admin/visitors" class="btn btn-outline-primary">
+                        <i class="fas fa-user-friends me-2"></i>
+                        Gérer les visiteurs
+                    </a>
+                    <a href="/admin/staff" class="btn btn-outline-success">
+                        <i class="fas fa-user-tie me-2"></i>
+                        Gérer le personnel
+                    </a>
+                    <a href="/admin/formations" class="btn btn-outline-info">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Gérer les formations
+                    </a>
+                    <a href="/admin/history" class="btn btn-outline-warning">
+                        <i class="fas fa-history me-2"></i>
+                        Consulter l'historique
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Statistiques globales
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <h4 class="text-primary"><%= statistics.totalVisitors %></h4>
+                        <small class="text-muted">Total visiteurs</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <h4 class="text-success"><%= statistics.totalBadges %></h4>
+                        <small class="text-muted">Total badges</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-info"><%= statistics.totalStaff %></h4>
+                        <small class="text-muted">Total personnel</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-warning"><%= statistics.totalFormations %></h4>
+                        <small class="text-muted">Total formations</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Info -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Informations système
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Dernière mise à jour :</strong> <span id="lastUpdate"></span></p>
+                        <p><strong>Utilisateur connecté :</strong> <%= user.email %></p>
+                        <p><strong>Rôle :</strong> 
+                            <span class="badge bg-primary"><%= user.role %></span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Sorties aujourd'hui :</strong> <%= statistics.todayCheckouts %></p>
+                        <p><strong>Formations actives :</strong> <%= statistics.activeFormations %></p>
+                        <p><strong>Personnel actif :</strong> <%= statistics.activeStaff %>/<%= statistics.totalStaff %></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update timestamp
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleString('fr-FR');
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        window.location.reload();
+    }, 30000);
+</script>
+` }) %> 

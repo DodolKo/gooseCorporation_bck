@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Admin user for back-office access
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(ADMIN)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      Log[]
+}
+
+// Visitor registration
+model GooseCorpUser {
+  id          Int      @id @default(autoincrement())
+  uniqueId    String   @unique @default(cuid()) // Unique ID for each visitor
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  company     String?
+  visitReason VisitReason
+  staffId     Int?     // If visiting someone
+  formationId Int?     // If attending formation
+  status      VisitStatus @default(INSIDE)
+  checkInTime DateTime @default(now())
+  checkOutTime DateTime?
+  badge       Badge?
+  visits      Visit[]  // History of visits
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  staff       GooseCorpStaff? @relation(fields: [staffId], references: [id])
+  formation   GooseCorpFormation? @relation(fields: [formationId], references: [id])
+}
+
+// Visit history for tracking entries and exits
+model Visit {
+  id        Int      @id @default(autoincrement())
+  visitorId Int
+  visitor   GooseCorpUser @relation(fields: [visitorId], references: [id])
+  action    VisitAction
+  timestamp DateTime @default(now())
+  details   String?
+  staffId   Int?
+  formationId Int?
+  
+  staff     GooseCorpStaff? @relation(fields: [staffId], references: [id])
+  formation GooseCorpFormation? @relation(fields: [formationId], references: [id])
+}
+
+// Staff members to visit
+model GooseCorpStaff {
+  id         Int      @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  email      String   @unique
+  phone      String?
+  department String?
+  office     String?  // Office location
+  position   String?  // Job position
+  isActive   Boolean  @default(true)
+  visitors   GooseCorpUser[]
+  visits     Visit[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Available formations
+model GooseCorpFormation {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  location    String   // Formation location
+  startDate   DateTime?
+  endDate     DateTime?
+  maxAttendees Int?
+  instructor  String?
+  isActive    Boolean  @default(true)
+  attendees   GooseCorpUser[]
+  visits      Visit[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Digital badges
+model Badge {
+  id        Int      @id @default(autoincrement())
+  badgeId   String   @unique // Soft ID like "GC-2024-001"
+  visitorId Int      @unique
+  visitor   GooseCorpUser @relation(fields: [visitorId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  isActive  Boolean  @default(true)
+}
+
+// Log model for activity tracking
+model Log {
+  id        Int      @id @default(autoincrement())
+  action    String
+  details   String?
+  adminId   Int
+  admin     AdminUser @relation(fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// Visit reason enum
+enum VisitReason {
+  MEETING
+  FORMATION
+  OTHER
+  DELIVERY
+  MAINTENANCE
+}
+
+// Visit status enum
+enum VisitStatus {
+  INSIDE
+  OUTSIDE
+}
+
+// Visit action enum
+enum VisitAction {
+  CHECK_IN
+  CHECK_OUT
+  RETURN
+}
+
+// Admin roles enum
+enum Role {
+  ADMIN
+  USER
+  MANAGER
+}
