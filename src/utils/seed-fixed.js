@@ -157,7 +157,7 @@ async function seed() {
     ]);
     console.log('✅ Formations created:', formations.length);
 
-    // Create sample visitors
+    // Create sample visitors (FIXED: Using upsert instead of create)
     const sampleVisitors = await Promise.all([
       prisma.gooseCorpUser.upsert({
         where: { email: 'alice.johnson@example.com' },
@@ -208,22 +208,31 @@ async function seed() {
         }
       })
     ]);
-    console.log('✅ Sample visitors created:', sampleVisitors.length);
+    console.log('✅ Sample visitors created (no duplicates):', sampleVisitors.length);
 
-    // Create visit history
+    // Create visit history - Only if visits don't exist
     for (const visitor of sampleVisitors) {
-      await prisma.visit.create({
-        data: {
+      const existingVisit = await prisma.visit.findFirst({
+        where: {
           visitorId: visitor.id,
-          action: 'CHECK_IN',
-          timestamp: visitor.checkInTime,
-          details: `Checked in for ${visitor.visitReason}`,
-          staffId: visitor.staffId,
-          formationId: visitor.formationId
+          action: 'CHECK_IN'
         }
       });
+
+      if (!existingVisit) {
+        await prisma.visit.create({
+          data: {
+            visitorId: visitor.id,
+            action: 'CHECK_IN',
+            timestamp: visitor.checkInTime,
+            details: `Checked in for ${visitor.visitReason}`,
+            staffId: visitor.staffId,
+            formationId: visitor.formationId
+          }
+        });
+      }
     }
-    console.log('✅ Visit history created');
+    console.log('✅ Visit history created (no duplicates)');
 
     console.log('🎉 Database seeding completed successfully!');
     console.log('\n📋 Default credentials:');

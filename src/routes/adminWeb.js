@@ -539,4 +539,118 @@ async function getDashboardData() {
   };
 }
 
+// Add staff member (web form)
+router.post('/staff/add', [
+  authenticateWeb,
+  body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
+  body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
+  body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
+  body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
+  body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { firstName, lastName, email, phone, department, office, position, isActive = true } = req.body;
+
+    // Check if email already exists
+    const existingStaff = await prisma.gooseCorpStaff.findUnique({
+      where: { email }
+    });
+
+    if (existingStaff) {
+      return res.status(400).json({ success: false, error: 'Email already exists' });
+    }
+
+    const staff = await prisma.gooseCorpStaff.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        department,
+        office,
+        position,
+        isActive: isActive === 'true'
+      }
+    });
+
+    // Log the action
+    await prisma.log.create({
+      data: {
+        action: 'CREATE_STAFF',
+        details: `Created staff member: ${firstName} ${lastName} (${email})`,
+        adminId: req.user.userId
+      }
+    });
+
+    res.json({ success: true, staff });
+
+  } catch (error) {
+    console.error('Error creating staff member:', error);
+    res.status(500).json({ success: false, error: 'Failed to create staff member' });
+  }
+});
+
+// Add formation (web form)
+router.post('/formations/add', [
+  authenticateWeb,
+  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('description').optional().trim().isLength({ min: 2 }).withMessage('Description must be at least 2 characters'),
+  body('location').trim().isLength({ min: 2 }).withMessage('Location must be at least 2 characters'),
+  body('startDate').optional().isISO8601().withMessage('Valid start date is required'),
+  body('endDate').optional().isISO8601().withMessage('Valid end date is required'),
+  body('maxAttendees').optional().isInt({ min: 1 }).withMessage('Max attendees must be a positive number'),
+  body('instructor').optional().trim().isLength({ min: 2 }).withMessage('Instructor must be at least 2 characters'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { name, description, location, startDate, endDate, maxAttendees, instructor, isActive = true } = req.body;
+
+    // Validate date range
+    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+      return res.status(400).json({ success: false, error: 'End date must be after start date' });
+    }
+
+    const formation = await prisma.gooseCorpFormation.create({
+      data: {
+        name,
+        description: description || null,
+        location,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        maxAttendees: maxAttendees ? parseInt(maxAttendees) : null,
+        instructor: instructor || null,
+        isActive: isActive === 'true'
+      }
+    });
+
+    // Log the action
+    await prisma.log.create({
+      data: {
+        action: 'CREATE_FORMATION',
+        details: `Created formation: ${name} at ${location}`,
+        adminId: req.user.userId
+      }
+    });
+
+    res.json({ success: true, formation });
+
+  } catch (error) {
+    console.error('Error creating formation:', error);
+    res.status(500).json({ success: false, error: 'Failed to create formation' });
+  }
+});
+
 module.exports = router; 
