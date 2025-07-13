@@ -9,7 +9,12 @@ async function seed() {
     const hashedPassword = await bcrypt.hash('Admin123!', 12);
     const admin = await prisma.adminUser.upsert({
       where: { email: 'admin@goosecorp.com' },
-      update: {},
+      update: {
+        password: hashedPassword,
+        name: 'Admin User',
+        role: 'ADMIN',
+        isActive: true
+      },
       create: {
         email: 'admin@goosecorp.com',
         password: hashedPassword,
@@ -21,12 +26,18 @@ async function seed() {
     console.log('✅ Admin user created:', admin.email);
 
     // Create additional admin users with strong passwords
+    const managerPassword = await bcrypt.hash('Manager123!', 12);
     const manager = await prisma.adminUser.upsert({
       where: { email: 'manager@goosecorp.com' },
-      update: {},
+      update: {
+        password: managerPassword,
+        name: 'Manager User',
+        role: 'MANAGER',
+        isActive: true
+      },
       create: {
         email: 'manager@goosecorp.com',
-        password: await bcrypt.hash('Manager123!', 12),
+        password: managerPassword,
         name: 'Manager User',
         role: 'MANAGER',
         isActive: true
