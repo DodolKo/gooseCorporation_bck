@@ -32,21 +32,25 @@ const authenticateWeb = (req, res, next) => {
 router.get('/login', (req, res) => {
   res.render('admin/login', { 
     title: 'Admin Login - GooseCorp',
-    error: null 
+    error: null,
+    csrfToken: req.csrfToken()
   });
 });
 
 // Handle admin login form
 router.post('/login-web', [
   body('email').isEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.render('admin/login', { 
         title: 'Admin Login - GooseCorp',
-        error: errors.array()[0].msg 
+        error: errors.array()[0].msg,
+        csrfToken: req.csrfToken()
       });
     }
 
@@ -60,7 +64,8 @@ router.post('/login-web', [
     if (!admin) {
       return res.render('admin/login', { 
         title: 'Admin Login - GooseCorp',
-        error: 'Invalid credentials' 
+        error: 'Invalid credentials',
+        csrfToken: req.csrfToken()
       });
     }
 
@@ -69,7 +74,8 @@ router.post('/login-web', [
     if (!isValidPassword) {
       return res.render('admin/login', { 
         title: 'Admin Login - GooseCorp',
-        error: 'Invalid credentials' 
+        error: 'Invalid credentials',
+        csrfToken: req.csrfToken()
       });
     }
 
@@ -101,7 +107,8 @@ router.post('/login-web', [
     console.error('Error during web login:', error);
     res.render('admin/login', { 
       title: 'Admin Login - GooseCorp',
-      error: 'Login failed' 
+      error: 'Login failed',
+      csrfToken: req.csrfToken()
     });
   }
 });

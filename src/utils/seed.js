@@ -5,8 +5,8 @@ async function seed() {
   try {
     console.log('🌱 Starting database seeding...');
 
-    // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    // Create admin user with strong password
+    const hashedPassword = await bcrypt.hash('Admin123!', 12);
     const admin = await prisma.adminUser.upsert({
       where: { email: 'admin@goosecorp.com' },
       update: {},
@@ -20,13 +20,13 @@ async function seed() {
     });
     console.log('✅ Admin user created:', admin.email);
 
-    // Create additional admin users
+    // Create additional admin users with strong passwords
     const manager = await prisma.adminUser.upsert({
       where: { email: 'manager@goosecorp.com' },
       update: {},
       create: {
         email: 'manager@goosecorp.com',
-        password: await bcrypt.hash('manager123', 10),
+        password: await bcrypt.hash('Manager123!', 12),
         name: 'Manager User',
         role: 'MANAGER',
         isActive: true
@@ -194,8 +194,8 @@ async function seed() {
 
     console.log('🎉 Database seeding completed successfully!');
     console.log('\n📋 Default credentials:');
-    console.log('Admin: admin@goosecorp.com / admin123');
-    console.log('Manager: manager@goosecorp.com / manager123');
+    console.log('Admin: admin@goosecorp.com / Admin123!');
+    console.log('Manager: manager@goosecorp.com / Manager123!');
 
   } catch (error) {
     console.error('❌ Error during seeding:', error);
