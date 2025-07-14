@@ -44,7 +44,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://*.netlify.app", "https://*.netlify.com", "https://goosecorporationbck-production.up.railway.app"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -73,17 +73,44 @@ if (process.env.NODE_ENV === 'development') {
   
   console.log('🔓 [CORS] Mode développement - Toutes les origines autorisées');
 } else {
-  // Configuration pour production - PERMISSIVE pour Railway
+  // Configuration pour production - Autoriser Netlify et autres domaines
   const allowedOrigins = process.env.ALLOWED_ORIGINS ? 
     process.env.ALLOWED_ORIGINS.split(',') : 
-    ['*']; // Par défaut, autoriser toutes les origines
+    [
+      'https://goosecorp-frt.netlify.app',
+      'https://*.netlify.app',
+      'https://*.netlify.com',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:8080'
+    ];
 
-  // Configuration CORS très permissive pour Railway
+  // Configuration CORS pour production avec domaines autorisés
   app.use(cors({
     origin: function (origin, callback) {
-      // Toujours autoriser les requêtes
-      console.log(`[CORS] Origine autorisée: ${origin || 'requête directe'}`);
-      return callback(null, true);
+      // Autoriser les requêtes sans origine (comme les formulaires directs)
+      if (!origin) {
+        console.log('[CORS] Requête sans origine autorisée');
+        return callback(null, true);
+      }
+      
+      // Vérifier si l'origine est dans la liste autorisée
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (allowedOrigin.includes('*')) {
+          // Gérer les wildcards
+          const pattern = allowedOrigin.replace('*', '.*');
+          return new RegExp(pattern).test(origin);
+        }
+        return allowedOrigin === origin;
+      });
+      
+      if (isAllowed) {
+        console.log(`[CORS] Origine autorisée: ${origin}`);
+        return callback(null, true);
+      } else {
+        console.log(`[CORS] Origine refusée: ${origin}`);
+        return callback(new Error('Origine non autorisée par CORS'));
+      }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
