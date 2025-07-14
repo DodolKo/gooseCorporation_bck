@@ -11,6 +11,23 @@ require('dotenv').config();
 
 const app = express();
 
+// Middleware CORS global pour Railway - URGENT FIX
+app.use((req, res, next) => {
+  // Headers CORS permissifs
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Répondre immédiatement aux requêtes OPTIONS
+  if (req.method === 'OPTIONS') {
+    console.log('[CORS] Requête OPTIONS autorisée');
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -56,37 +73,27 @@ if (process.env.NODE_ENV === 'development') {
   
   console.log('🔓 [CORS] Mode développement - Toutes les origines autorisées');
 } else {
-  // Configuration sécurisée pour production
+  // Configuration pour production - PERMISSIVE pour Railway
   const allowedOrigins = process.env.ALLOWED_ORIGINS ? 
     process.env.ALLOWED_ORIGINS.split(',') : 
-    ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://localhost:8080'];
+    ['*']; // Par défaut, autoriser toutes les origines
 
+  // Configuration CORS très permissive pour Railway
   app.use(cors({
     origin: function (origin, callback) {
-      // Autoriser les requêtes sans origine (requêtes directes, formulaires, etc.)
-      if (!origin) {
-        console.log('[CORS] Requête sans origine autorisée (requête directe)');
-        return callback(null, true);
-      }
-      
-      // Vérifier si l'origine est autorisée
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        console.log(`[CORS] Origine autorisée: ${origin}`);
-        return callback(null, true);
-      }
-      
-      // Si l'origine n'est pas autorisée, la rejeter
-      console.log(`[CORS] Origine rejetée: ${origin}`);
-      callback(new Error('Non autorisé par CORS'));
+      // Toujours autoriser les requêtes
+      console.log(`[CORS] Origine autorisée: ${origin || 'requête directe'}`);
+      return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token', 'Accept'],
     exposedHeaders: ['X-CSRF-Token'],
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    preflightContinue: false
   }));
   
-  console.log(`🔒 [CORS] Mode production - Origines autorisées: ${allowedOrigins.join(', ')}`);
+  console.log('🔓 [CORS] Mode production - TOUTES les origines autorisées pour Railway');
 }
 
 // Rate limiting
@@ -252,9 +259,10 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${new Date().toISOString()} - ${err.stack}`);
   
-  // Erreur CORS
-  if (err.message.includes('CORS')) {
-    return res.status(403).json({ error: 'Accès CORS refusé' });
+  // Erreur CORS - NE PAS BLOQUER
+  if (err.message && err.message.includes('CORS')) {
+    console.log('[CORS] Erreur CORS ignorée pour Railway');
+    return next(); // Continuer au lieu de bloquer
   }
   
   // Erreur CSRF
