@@ -107,6 +107,34 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true // Ne pas compter les connexions réussies
 });
 
+// Public endpoints rate limiting (more permissive for frontend)
+const publicLimiter = rateLimit({
+  windowMs: parseInt(process.env.PUBLIC_RATE_LIMIT_WINDOW) || 5 * 60 * 1000, // 5 minutes
+  max: parseInt(process.env.PUBLIC_RATE_LIMIT_MAX) || 200, // 200 requests per 5 minutes
+  message: {
+    error: 'Trop de requêtes depuis cette IP pour les endpoints publics, veuillez réessayer plus tard.',
+    retryAfter: Math.ceil((parseInt(process.env.PUBLIC_RATE_LIMIT_WINDOW) || 5 * 60 * 1000) / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health check
+    return req.path === '/api/visitors/public/health';
+  }
+});
+
+// Visitor registration rate limiting (anti-spam)
+const visitorRegistrationLimiter = rateLimit({
+  windowMs: parseInt(process.env.VISITOR_RATE_LIMIT_WINDOW) || 10 * 60 * 1000, // 10 minutes
+  max: parseInt(process.env.VISITOR_RATE_LIMIT_MAX) || 10, // 10 registrations per 10 minutes per IP
+  message: {
+    error: 'Trop d\'inscriptions depuis cette IP, veuillez réessayer plus tard.',
+    retryAfter: Math.ceil((parseInt(process.env.VISITOR_RATE_LIMIT_WINDOW) || 10 * 60 * 1000) / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Logging avancé
 app.use(morgan('combined'));
 
@@ -168,6 +196,17 @@ app.use('/static', express.static(path.join(__dirname, 'public'), {
 app.use('/api/', apiLimiter);
 app.use('/admin/login', loginLimiter);
 app.use('/admin/login-web', loginLimiter);
+
+// Apply specific rate limiting for public endpoints
+app.use('/api/visitors/public', publicLimiter);
+
+// Apply specific rate limiting for visitor registration
+app.use('/api/visitors', (req, res, next) => {
+  if (req.method === 'POST' && req.path === '/') {
+    return visitorRegistrationLimiter(req, res, next);
+  }
+  next();
+});
 
 // Routes API (sans CSRF)
 app.use('/api/visitors', require('./routes/visitors'));

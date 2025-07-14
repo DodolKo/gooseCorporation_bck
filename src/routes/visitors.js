@@ -3,6 +3,11 @@ const { body, validationResult, query } = require('express-validator');
 const router = express.Router();
 const prisma = require('../config/database');
 
+// Test endpoint to verify routes are working
+router.get('/test', (req, res) => {
+  res.json({ message: 'Visitors routes are working!', timestamp: new Date().toISOString() });
+});
+
 // Validation rules
 const visitorValidation = [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
@@ -54,7 +59,22 @@ router.post('/', visitorValidation, async (req, res) => {
       }
     }
 
-    // Create visitor
+    // Check if visitor already exists and is currently inside
+    const existingVisitor = await prisma.gooseCorpUser.findFirst({
+      where: {
+        email: email,
+        status: 'INSIDE'
+      }
+    });
+
+    if (existingVisitor) {
+      return res.status(400).json({ 
+        error: 'Un visiteur avec cet email est déjà enregistré comme présent dans le bâtiment',
+        suggestion: 'Veuillez d\'abord effectuer la sortie ou utiliser un autre email'
+      });
+    }
+
+    // Create visitor (allow duplicate emails for different visits)
     const visitor = await prisma.gooseCorpUser.create({
       data: {
         firstName,
@@ -550,6 +570,217 @@ router.get('/status/inside', async (req, res) => {
     console.error('Error fetching current visitors:', error);
     res.status(500).json({ error: 'Failed to fetch current visitors' });
   }
+});
+
+// Re-entry endpoint for existing visitors
+router.post('/:identifier/reentry', [
+  body('visitReason').isIn(['MEETING', 'FORMATION', 'OTHER', 'DELIVERY', 'MAINTENANCE']).withMessage('Invalid visit reason'),
+  body('staffId').optional().isInt().withMessage('Staff ID must be a number'),
+  body('formationId').optional().isInt().withMessage('Formation ID must be a number')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { identifier } = req.params;
+    const { visitReason, staffId, formationId } = req.body;
+
+    // Find visitor by ID or uniqueId
+    let visitor = null;
+    if (!isNaN(identifier)) {
+      visitor = await prisma.gooseCorpUser.findUnique({ 
+        where: { id: parseInt(identifier) },
+        include: { staff: true, formation: true, badge: true }
+      });
+    } else {
+      visitor = await prisma.gooseCorpUser.findUnique({ 
+        where: { uniqueId: identifier },
+        include: { staff: true, formation: true, badge: true }
+      });
+    }
+
+    if (!visitor) {
+      return res.status(404).json({ error: 'Visitor not found' });
+    }
+
+    if (visitor.status === 'INSIDE') {
+      return res.status(400).json({ error: 'Visitor is already inside the building' });
+    }
+
+    // Validate staff/formation requirements
+    if (visitReason === 'MEETING' && !staffId) {
+      return res.status(400).json({ error: 'Staff ID is required for meetings' });
+    }
+    if (visitReason === 'FORMATION' && !formationId) {
+      return res.status(400).json({ error: 'Formation ID is required for formations' });
+    }
+
+    // Validate staff exists if provided
+    if (staffId) {
+      const staff = await prisma.gooseCorpStaff.findUnique({
+        where: { id: staffId, isActive: true }
+      });
+      if (!staff) {
+        return res.status(404).json({ error: 'Staff member not found or inactive' });
+      }
+    }
+
+    // Validate formation exists if provided
+    if (formationId) {
+      const formation = await prisma.gooseCorpFormation.findUnique({
+        where: { id: formationId, isActive: true }
+      });
+      if (!formation) {
+        return res.status(404).json({ error: 'Formation not found or inactive' });
+      }
+    }
+
+    // Update visitor status and info
+    const updatedVisitor = await prisma.gooseCorpUser.update({
+      where: { id: visitor.id },
+      data: {
+        status: 'INSIDE',
+        checkInTime: new Date(),
+        checkOutTime: null,
+        visitReason: visitReason,
+        staffId: staffId || null,
+        formationId: formationId || null
+      },
+      include: {
+        staff: true,
+        formation: true,
+        badge: true
+      }
+    });
+
+    // Create visit history entry
+    await prisma.visit.create({
+      data: {
+        visitorId: visitor.id,
+        action: 'RETURN',
+        timestamp: updatedVisitor.checkInTime,
+        details: `Re-entry for ${visitReason}`,
+        staffId: staffId || null,
+        formationId: formationId || null
+      }
+    });
+
+    // Activate badge if exists
+    if (visitor.badge) {
+      await prisma.badge.update({
+        where: { id: visitor.badge.id },
+        data: { isActive: true }
+      });
+    }
+
+    res.json({
+      message: 'Visitor re-entry successful',
+      visitor: {
+        ...updatedVisitor,
+        isReentry: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Error processing re-entry:', error);
+    res.status(500).json({ error: 'Failed to process re-entry' });
+  }
+});
+
+// ========================================
+// PUBLIC ENDPOINTS FOR FRONTEND
+// ========================================
+
+// Get active staff members (public endpoint)
+router.get('/public/staff', async (req, res) => {
+  try {
+    // Add security headers for public endpoints
+    res.set({
+      'Cache-Control': 'public, max-age=300', // 5 minutes cache
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block'
+    });
+
+    const staff = await prisma.gooseCorpStaff.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        department: true,
+        position: true,
+        email: true
+      },
+      orderBy: [
+        { department: 'asc' },
+        { firstName: 'asc' }
+      ]
+    });
+
+    res.json({ 
+      staff,
+      count: staff.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error fetching public staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff members' });
+  }
+});
+
+// Get active formations (public endpoint)
+router.get('/public/formations', async (req, res) => {
+  try {
+    // Add security headers for public endpoints
+    res.set({
+      'Cache-Control': 'public, max-age=300', // 5 minutes cache
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block'
+    });
+
+    const formations = await prisma.gooseCorpFormation.findMany({
+      where: { 
+        isActive: true
+        // Removed date filter to show all active formations
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        location: true,
+        startDate: true,
+        endDate: true,
+        instructor: true,
+        maxAttendees: true,
+        isActive: true
+      },
+      orderBy: { startDate: 'asc' }
+    });
+
+    res.json({ 
+      formations,
+      count: formations.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error fetching public formations:', error);
+    res.status(500).json({ error: 'Failed to fetch formations' });
+  }
+});
+
+// Health check endpoint for frontend
+router.get('/public/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
 });
 
 module.exports = router; 
