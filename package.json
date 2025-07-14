@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npx prisma migrate deploy && npx prisma db seed && node src/server.js",
+    "start": "npx prisma migrate deploy && node quick-seed.js && node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/utils/seed.js",
     "build": "npx prisma generate",
@@ -12,6 +12,7 @@
     "deploy": "./scripts/deploy-railway.sh",
     "migrate": "npx prisma migrate deploy",
     "db:seed": "npx prisma db seed",
+    "quick-seed": "node quick-seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
