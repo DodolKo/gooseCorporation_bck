@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= csrfToken %>">
     <title><%= title %></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -233,21 +234,25 @@
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <% if (formation.isActive) { %>
-                                                        <span class="badge bg-success">Active</span>
-                                                    <% } else { %>
-                                                        <span class="badge bg-secondary">Inactive</span>
-                                                    <% } %>
+                                                    <span class="badge bg-<%= formation.isActive ? 'success' : 'danger' %>">
+                                                        <%= formation.isActive ? 'Active' : 'Inactive' %>
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" title="Modifier">
+                                                        <button class="btn btn-outline-primary btn-edit-formation" title="Modifier" 
+                                                                data-id="<%= formation.id %>"
+                                                                data-name="<%= formation.name || '' %>"
+                                                                data-description="<%= formation.description || '' %>"
+                                                                data-location="<%= formation.location || '' %>"
+                                                                data-instructor="<%= formation.instructor || '' %>"
+                                                                data-maxattendees="<%= formation.maxAttendees || '' %>"
+                                                                data-startdate="<%= formation.startDate ? formation.startDate.toISOString() : '' %>"
+                                                                data-enddate="<%= formation.endDate ? formation.endDate.toISOString() : '' %>"
+                                                                data-isactive="<%= formation.isActive %>">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-info" title="Participants">
-                                                            <i class="fas fa-users"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-danger" title="Supprimer">
+                                                        <button class="btn btn-outline-danger btn-delete-formation" title="Supprimer" data-id="<%= formation.id %>">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -380,6 +385,88 @@
         </div>
     </div>
 
+    <!-- Modal d'édition de formation -->
+    <div class="modal fade" id="editFormationModal" tabindex="-1" aria-labelledby="editFormationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editFormationModalLabel">
+                        <i class="bi bi-pencil me-2"></i>Modifier la formation
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editFormationForm">
+                    <div class="modal-body">
+                        <div class="alert alert-danger d-none" id="editFormationError"></div>
+                        <div class="alert alert-success d-none" id="editFormationSuccess"></div>
+                        
+                        <input type="hidden" id="editFormationId" name="formationId">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editFormationName" class="form-label">Nom de la formation *</label>
+                                    <input type="text" class="form-control" id="editFormationName" name="name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editLocation" class="form-label">Lieu *</label>
+                                    <input type="text" class="form-control" id="editLocation" name="location" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editDescription" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editInstructor" class="form-label">Instructeur</label>
+                                    <input type="text" class="form-control" id="editInstructor" name="instructor">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editMaxAttendees" class="form-label">Participants max</label>
+                                    <input type="number" class="form-control" id="editMaxAttendees" name="maxAttendees" min="1">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editStartDate" class="form-label">Date de début</label>
+                                    <input type="datetime-local" class="form-control" id="editStartDate" name="startDate">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editEndDate" class="form-label">Date de fin</label>
+                                    <input type="datetime-local" class="form-control" id="editEndDate" name="endDate">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editFormationIsActive" class="form-label">Statut</label>
+                            <select class="form-control" id="editFormationIsActive" name="isActive">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>Sauvegarder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Handle formation form submission
@@ -400,7 +487,8 @@
                 const response = await fetch('/admin/formations/add', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': '<%= csrfToken %>'
                     },
                     body: JSON.stringify(data)
                 });
@@ -408,7 +496,6 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Close modal and refresh page
                     bootstrap.Modal.getInstance(document.getElementById('addFormationModal')).hide();
                     location.reload();
                 } else {
@@ -417,6 +504,133 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Erreur lors de l\'ajout de la formation');
+            }
+        });
+
+        // Event listeners pour les boutons d'édition des formations
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-edit-formation')) {
+                const btn = e.target.closest('.btn-edit-formation');
+                const formationId = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                const description = btn.getAttribute('data-description');
+                const location = btn.getAttribute('data-location');
+                const instructor = btn.getAttribute('data-instructor');
+                const maxAttendees = btn.getAttribute('data-maxattendees');
+                const startDate = btn.getAttribute('data-startdate');
+                const endDate = btn.getAttribute('data-enddate');
+                const isActive = btn.getAttribute('data-isactive');
+                
+                // Remplir le formulaire avec les données existantes
+                document.getElementById('editFormationId').value = formationId;
+                document.getElementById('editFormationName').value = name || '';
+                document.getElementById('editLocation').value = location || '';
+                document.getElementById('editDescription').value = description || '';
+                document.getElementById('editInstructor').value = instructor || '';
+                document.getElementById('editMaxAttendees').value = maxAttendees || '';
+                document.getElementById('editFormationIsActive').value = isActive;
+                
+                // Formater les dates pour les inputs datetime-local
+                if (startDate) {
+                    const startDateTime = new Date(startDate);
+                    document.getElementById('editStartDate').value = startDateTime.toISOString().slice(0, 16);
+                }
+                if (endDate) {
+                    const endDateTime = new Date(endDate);
+                    document.getElementById('editEndDate').value = endDateTime.toISOString().slice(0, 16);
+                }
+                
+                // Afficher la modale
+                const modal = new bootstrap.Modal(document.getElementById('editFormationModal'));
+                modal.show();
+            }
+        });
+
+        // Gestionnaire pour le formulaire de modification
+        document.getElementById('editFormationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formationId = document.getElementById('editFormationId').value;
+            const formData = new FormData(this);
+            
+            // Convertir FormData en objet
+            const data = {};
+            formData.forEach((value, key) => {
+                if (key !== 'formationId') {
+                    data[key] = value;
+                }
+            });
+            
+            // Envoyer la requête de modification
+            fetch(`/admin/formations/edit/${formationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': '<%= csrfToken %>'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Afficher le message de succès
+                    document.getElementById('editFormationSuccess').textContent = 'Formation modifiée avec succès!';
+                    document.getElementById('editFormationSuccess').classList.remove('d-none');
+                    document.getElementById('editFormationError').classList.add('d-none');
+                    
+                    // Fermer la modale après un délai
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editFormationModal'));
+                        modal.hide();
+                        window.location.reload(); // Recharger la page
+                    }, 1500);
+                } else {
+                    // Afficher les erreurs
+                    let errorMessage = data.error || 'Erreur lors de la modification';
+                    if (data.errors) {
+                        errorMessage = data.errors.map(err => err.msg).join(', ');
+                    }
+                    document.getElementById('editFormationError').textContent = errorMessage;
+                    document.getElementById('editFormationError').classList.remove('d-none');
+                    document.getElementById('editFormationSuccess').classList.add('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                document.getElementById('editFormationError').textContent = 'Erreur lors de la modification';
+                document.getElementById('editFormationError').classList.remove('d-none');
+                document.getElementById('editFormationSuccess').classList.add('d-none');
+            });
+        });
+
+        // Event listeners pour les boutons de suppression des formations
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-delete-formation')) {
+                const btn = e.target.closest('.btn-delete-formation');
+                const formationId = btn.getAttribute('data-id');
+                
+                if (confirm('Êtes-vous sûr de vouloir supprimer cette formation ?')) {
+                    fetch(`/admin/formations/delete/${formationId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': '<%= csrfToken %>'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Formation supprimée avec succès');
+                            window.location.reload();
+                        } else {
+                            alert('Erreur lors de la suppression: ' + (data.error || 'Erreur inconnue'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        alert('Erreur lors de la suppression');
+                    });
+                }
             }
         });
     </script>

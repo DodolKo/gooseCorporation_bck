@@ -8,7 +8,7 @@ const visitorValidation = [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
+  body('phone').optional().matches(/^[\+]?[0-9\s\-\(\)]+$/).withMessage('Valid phone number is required'),
   body('company').optional().trim().isLength({ min: 2 }).withMessage('Company name must be at least 2 characters'),
   body('visitReason').isIn(['MEETING', 'FORMATION', 'OTHER', 'DELIVERY', 'MAINTENANCE']).withMessage('Invalid visit reason'),
   body('staffId').optional().isInt().withMessage('Staff ID must be a number'),

@@ -254,10 +254,6 @@ router.get('/staff', authenticateWeb, async (req, res) => {
       whereClause.isActive = isActive === 'true';
     }
     
-    if (department) {
-      whereClause.department = { contains: department, mode: 'insensitive' };
-    }
-    
     if (search) {
       whereClause.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -266,6 +262,10 @@ router.get('/staff', authenticateWeb, async (req, res) => {
         { department: { contains: search, mode: 'insensitive' } },
         { position: { contains: search, mode: 'insensitive' } }
       ];
+    }
+    
+    if (department) {
+      whereClause.department = { contains: department, mode: 'insensitive' };
     }
 
     const staff = await prisma.gooseCorpStaff.findMany({
@@ -301,7 +301,8 @@ router.get('/staff', authenticateWeb, async (req, res) => {
         prevPage: parseInt(page) - 1
       },
       filters: { search, department, isActive },
-      totalCount
+      totalCount,
+      csrfToken: req.csrfToken()
     });
 
   } catch (error) {
@@ -369,7 +370,8 @@ router.get('/formations', authenticateWeb, async (req, res) => {
         prevPage: parseInt(page) - 1
       },
       filters: { search, isActive },
-      totalCount
+      totalCount,
+      csrfToken: req.csrfToken()
     });
 
   } catch (error) {
@@ -545,7 +547,7 @@ router.post('/staff/add', [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
+  body('phone').optional().matches(/^[\+]?[0-9\s\-\(\)]+$/).withMessage('Valid phone number is required'),
   body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
   body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
   body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
@@ -618,20 +620,15 @@ router.post('/formations/add', [
 
     const { name, description, location, startDate, endDate, maxAttendees, instructor, isActive = true } = req.body;
 
-    // Validate date range
-    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
-      return res.status(400).json({ success: false, error: 'End date must be after start date' });
-    }
-
     const formation = await prisma.gooseCorpFormation.create({
       data: {
         name,
-        description: description || null,
+        description,
         location,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         maxAttendees: maxAttendees ? parseInt(maxAttendees) : null,
-        instructor: instructor || null,
+        instructor,
         isActive: isActive === 'true'
       }
     });
@@ -650,6 +647,215 @@ router.post('/formations/add', [
   } catch (error) {
     console.error('Error creating formation:', error);
     res.status(500).json({ success: false, error: 'Failed to create formation' });
+  }
+});
+
+// Edit staff member (web form)
+router.post('/staff/edit/:id', [
+  authenticateWeb,
+  body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
+  body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('phone').optional().matches(/^[\+]?[0-9\s\-\(\)]+$/).withMessage('Valid phone number is required'),
+  body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
+  body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
+  body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const { firstName, lastName, email, phone, department, office, position, isActive } = req.body;
+
+    // Check if staff member exists
+    const existingStaff = await prisma.gooseCorpStaff.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingStaff) {
+      return res.status(404).json({ success: false, error: 'Staff member not found' });
+    }
+
+    // Check if email already exists for another staff member
+    if (email !== existingStaff.email) {
+      const emailExists = await prisma.gooseCorpStaff.findUnique({
+        where: { email }
+      });
+
+      if (emailExists) {
+        return res.status(400).json({ success: false, error: 'Email already exists' });
+      }
+    }
+
+    const updatedStaff = await prisma.gooseCorpStaff.update({
+      where: { id: parseInt(id) },
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        department,
+        office,
+        position,
+        isActive: isActive === 'true'
+      }
+    });
+
+    // Log the action
+    await prisma.log.create({
+      data: {
+        action: 'UPDATE_STAFF',
+        details: `Updated staff member: ${firstName} ${lastName} (${email})`,
+        adminId: req.user.userId
+      }
+    });
+
+    res.json({ success: true, staff: updatedStaff });
+
+  } catch (error) {
+    console.error('Error updating staff member:', error);
+    res.status(500).json({ success: false, error: 'Failed to update staff member' });
+  }
+});
+
+// Edit formation (web form)
+router.post('/formations/edit/:id', [
+  authenticateWeb,
+  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('description').optional().trim().isLength({ min: 2 }).withMessage('Description must be at least 2 characters'),
+  body('location').trim().isLength({ min: 2 }).withMessage('Location must be at least 2 characters'),
+  body('startDate').optional().isISO8601().withMessage('Valid start date is required'),
+  body('endDate').optional().isISO8601().withMessage('Valid end date is required'),
+  body('maxAttendees').optional().isInt({ min: 1 }).withMessage('Max attendees must be a positive number'),
+  body('instructor').optional().trim().isLength({ min: 2 }).withMessage('Instructor must be at least 2 characters'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const { name, description, location, startDate, endDate, maxAttendees, instructor, isActive } = req.body;
+
+    // Check if formation exists
+    const existingFormation = await prisma.gooseCorpFormation.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingFormation) {
+      return res.status(404).json({ success: false, error: 'Formation not found' });
+    }
+
+    const updatedFormation = await prisma.gooseCorpFormation.update({
+      where: { id: parseInt(id) },
+      data: {
+        name,
+        description,
+        location,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        maxAttendees: maxAttendees ? parseInt(maxAttendees) : null,
+        instructor,
+        isActive: isActive === 'true'
+      }
+    });
+
+    // Log the action
+    await prisma.log.create({
+      data: {
+        action: 'UPDATE_FORMATION',
+        details: `Updated formation: ${name} at ${location}`,
+        adminId: req.user.userId
+      }
+    });
+
+    res.json({ success: true, formation: updatedFormation });
+
+  } catch (error) {
+    console.error('Error updating formation:', error);
+    res.status(500).json({ success: false, error: 'Failed to update formation' });
+  }
+});
+
+// =============================================================================
+// DELETE ENDPOINTS
+// =============================================================================
+
+// DELETE STAFF MEMBER
+router.post('/staff/delete/:id', authenticateWeb, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if staff member exists
+    const existingStaff = await prisma.gooseCorpStaff.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingStaff) {
+      return res.status(404).json({ success: false, error: 'Staff member not found' });
+    }
+
+    // Delete the staff member
+    await prisma.gooseCorpStaff.delete({
+      where: { id: parseInt(id) }
+    });
+
+    // Log the action
+    await prisma.log.create({
+      data: {
+        action: 'DELETE_STAFF',
+        details: `Deleted staff member: ${existingStaff.firstName} ${existingStaff.lastName}`,
+        adminId: req.user.userId
+      }
+    });
+
+    res.json({ success: true, message: 'Staff member deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting staff member:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete staff member' });
+  }
+});
+
+// DELETE FORMATION
+router.post('/formations/delete/:id', authenticateWeb, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if formation exists
+    const existingFormation = await prisma.gooseCorpFormation.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingFormation) {
+      return res.status(404).json({ success: false, error: 'Formation not found' });
+    }
+
+    // Delete the formation
+    await prisma.gooseCorpFormation.delete({
+      where: { id: parseInt(id) }
+    });
+
+    // Log the action
+    await prisma.log.create({
+      data: {
+        action: 'DELETE_FORMATION',
+        details: `Deleted formation: ${existingFormation.name}`,
+        adminId: req.user.userId
+      }
+    });
+
+    res.json({ success: true, message: 'Formation deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting formation:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete formation' });
   }
 });
 

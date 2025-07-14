@@ -424,7 +424,7 @@ router.get('/staff/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Staff member not found' });
     }
 
-    res.json(staff);
+    res.json({ staff });
   } catch (error) {
     console.error('Error fetching staff member:', error);
     res.status(500).json({ error: 'Failed to fetch staff member' });
@@ -437,7 +437,7 @@ router.post('/staff', [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
+  body('phone').optional().matches(/^[\+]?[0-9\s\-\(\)]+$/).withMessage('Valid phone number is required'),
   body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
   body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
   body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
@@ -499,7 +499,7 @@ router.put('/staff/:id', [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
   body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
+  body('phone').optional().matches(/^[\+]?[0-9\s\-\(\)]+$/).withMessage('Valid phone number is required'),
   body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
   body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
   body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
@@ -740,7 +740,7 @@ router.get('/formations/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Formation not found' });
     }
 
-    res.json(formation);
+    res.json({ formation });
   } catch (error) {
     console.error('Error fetching formation:', error);
     res.status(500).json({ error: 'Failed to fetch formation' });

@@ -1,0 +1,10 @@
+nohup: ignoring input
+
+> goosecorp_bck@1.0.0 start
+> node src/server.js
+
+[dotenv@17.2.0] injecting env (10) from .env (tip: ⚙️  enable debug logging with { debug: true })
+🔓 [CORS] Mode développement - Toutes les origines autorisées
+🚀 Server running on port 3000
+📊 Health check: http://localhost:3000/health
+🔗 API Base URL: http://localhost:3000/api
