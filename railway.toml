@@ -1,0 +1,37 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[deploy.envs]
+NODE_ENV = "production"
+PORT = "3000"
+
+# Rate limiting - plus strict en production
+RATE_LIMIT_WINDOW = "900000"
+RATE_LIMIT_MAX_REQUESTS = "50"
+LOGIN_RATE_LIMIT_MAX = "3"
+PUBLIC_RATE_LIMIT_WINDOW = "300000"
+PUBLIC_RATE_LIMIT_MAX = "100"
+VISITOR_RATE_LIMIT_WINDOW = "600000"
+VISITOR_RATE_LIMIT_MAX = "5"
+
+# Sessions et cookies
+COOKIE_MAX_AGE = "86400000"
+
+# Logging
+LOG_LEVEL = "info"
+AUDIT_LOGGING = "true"
+
+# CORS - à configurer selon vos domaines
+ALLOWED_ORIGINS = "https://your-frontend-domain.com,https://your-app-name.railway.app"
+
+# Les secrets JWT et SESSION seront configurés manuellement dans Railway
+# JWT_SECRET = "à configurer dans Railway"
+# SESSION_SECRET = "à configurer dans Railway"
+# DATABASE_URL = "à configurer dans Railway" 

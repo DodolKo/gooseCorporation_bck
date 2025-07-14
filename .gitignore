@@ -1,7 +1,19 @@
 node_modules
 # Keep environment variables out of version control
 .env
+.env.production
+.env.local
+.env.*.local
 
+# Generated Prisma client
 /src/generated/prisma
 
+# Wiki
 /wiki
+
+# Logs
+*.log
+server.log
+
+# Temporary files
+cookies.txt

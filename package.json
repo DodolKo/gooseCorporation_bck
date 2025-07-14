@@ -7,6 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/utils/seed.js",
+    "build": "npx prisma generate",
+    "postinstall": "npx prisma generate",
+    "deploy": "./scripts/deploy-railway.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
