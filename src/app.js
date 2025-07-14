@@ -63,20 +63,30 @@ if (process.env.NODE_ENV === 'development') {
 
   app.use(cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      // Autoriser les requêtes sans origine (requêtes directes, formulaires, etc.)
+      if (!origin) {
+        console.log('[CORS] Requête sans origine autorisée (requête directe)');
         return callback(null, true);
       }
       
+      // Vérifier si l'origine est autorisée
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        console.log(`[CORS] Origine autorisée: ${origin}`);
+        return callback(null, true);
+      }
+      
+      // Si l'origine n'est pas autorisée, la rejeter
       console.log(`[CORS] Origine rejetée: ${origin}`);
       callback(new Error('Non autorisé par CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
-    exposedHeaders: ['X-CSRF-Token']
+    exposedHeaders: ['X-CSRF-Token'],
+    optionsSuccessStatus: 200
   }));
+  
+  console.log(`🔒 [CORS] Mode production - Origines autorisées: ${allowedOrigins.join(', ')}`);
 }
 
 // Rate limiting
