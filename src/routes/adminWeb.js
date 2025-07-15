@@ -32,8 +32,7 @@ const authenticateWeb = (req, res, next) => {
 router.get('/login', (req, res) => {
   res.render('admin/login', { 
     title: 'Admin Login - GooseCorp',
-    error: null,
-    csrfToken: req.csrfToken()
+    error: null
   });
 });
 
@@ -49,8 +48,7 @@ router.post('/login-web', [
     if (!errors.isEmpty()) {
       return res.render('admin/login', { 
         title: 'Admin Login - GooseCorp',
-        error: errors.array()[0].msg,
-        csrfToken: req.csrfToken()
+        error: errors.array()[0].msg
       });
     }
 
@@ -64,8 +62,7 @@ router.post('/login-web', [
     if (!admin) {
       return res.render('admin/login', { 
         title: 'Admin Login - GooseCorp',
-        error: 'Invalid credentials',
-        csrfToken: req.csrfToken()
+        error: 'Invalid credentials'
       });
     }
 
@@ -74,8 +71,7 @@ router.post('/login-web', [
     if (!isValidPassword) {
       return res.render('admin/login', { 
         title: 'Admin Login - GooseCorp',
-        error: 'Invalid credentials',
-        csrfToken: req.csrfToken()
+        error: 'Invalid credentials'
       });
     }
 
@@ -107,8 +103,7 @@ router.post('/login-web', [
     console.error('Error during web login:', error);
     res.render('admin/login', { 
       title: 'Admin Login - GooseCorp',
-      error: 'Login failed',
-      csrfToken: req.csrfToken()
+      error: 'Login failed'
     });
   }
 });
@@ -301,8 +296,7 @@ router.get('/staff', authenticateWeb, async (req, res) => {
         prevPage: parseInt(page) - 1
       },
       filters: { search, department, isActive },
-      totalCount,
-      csrfToken: req.csrfToken()
+      totalCount
     });
 
   } catch (error) {
@@ -370,8 +364,7 @@ router.get('/formations', authenticateWeb, async (req, res) => {
         prevPage: parseInt(page) - 1
       },
       filters: { search, isActive },
-      totalCount,
-      csrfToken: req.csrfToken()
+      totalCount
     });
 
   } catch (error) {
