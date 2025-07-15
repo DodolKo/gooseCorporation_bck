@@ -94,6 +94,12 @@ if (process.env.NODE_ENV === 'development') {
         return callback(null, true);
       }
       
+      // Autoriser l'origine null (certains navigateurs l'envoient)
+      if (origin === 'null') {
+        console.log('[CORS] Origine null autorisée');
+        return callback(null, true);
+      }
+      
       // Vérifier si l'origine est dans la liste autorisée
       const isAllowed = allowedOrigins.some(allowedOrigin => {
         if (allowedOrigin.includes('*')) {
