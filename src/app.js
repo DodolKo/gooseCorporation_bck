@@ -258,8 +258,8 @@ app.use('/api/visitors', require('./routes/visitors'));
 app.use('/api/badges', require('./routes/badges'));
 app.use('/api/admin', require('./routes/adminApi'));
 
-// Admin web interface (avec CSRF)
-app.use('/admin', csrfProtection, require('./routes/adminWeb'));
+// Admin web interface (sans CSRF pour Railway)
+app.use('/admin', require('./routes/adminWeb'));
 
 // Root redirect
 app.get('/', (req, res) => {
