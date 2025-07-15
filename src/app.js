@@ -139,17 +139,18 @@ const apiLimiter = rateLimit({
   }
 });
 
-const loginLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000,
-  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX) || 5,
-  message: {
-    error: 'Trop de tentatives de connexion, veuillez réessayer plus tard.',
-    retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000) / 1000)
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true // Ne pas compter les connexions réussies
-});
+// Rate limiting supprimé pour les routes admin login (problème IP partagée)
+// const loginLimiter = rateLimit({
+//   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000,
+//   max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX) || 5,
+//   message: {
+//     error: 'Trop de tentatives de connexion, veuillez réessayer plus tard.',
+//     retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000) / 1000)
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   skipSuccessfulRequests: true // Ne pas compter les connexions réussies
+// });
 
 // Public endpoints rate limiting (more permissive for frontend)
 const publicLimiter = rateLimit({
@@ -239,8 +240,9 @@ app.use('/static', express.static(path.join(__dirname, 'public'), {
 
 // Apply rate limiting
 app.use('/api/', apiLimiter);
-app.use('/admin/login', loginLimiter);
-app.use('/admin/login-web', loginLimiter);
+// Rate limiting supprimé pour les routes admin login (problème IP partagée)
+// app.use('/admin/login', loginLimiter);
+// app.use('/admin/login-web', loginLimiter);
 
 // Apply specific rate limiting for public endpoints
 app.use('/api/visitors/public', publicLimiter);
