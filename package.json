@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npx prisma migrate deploy && node quick-seed.js && node src/server.js",
+    "start": "npx prisma migrate deploy && npx prisma generate && node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/utils/seed.js",
     "build": "npx prisma generate",
