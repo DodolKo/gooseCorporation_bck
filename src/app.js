@@ -216,7 +216,8 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 heures
-    sameSite: 'strict'
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict',
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // Laisse le navigateur gérer le domaine
   },
   name: 'goosecorp.sid' // Nom de session personnalisé
 }));
@@ -226,7 +227,7 @@ const csrfProtection = csrf({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'strict'
   }
 });
 
@@ -294,7 +295,16 @@ app.use((err, req, res, next) => {
   
   // Erreur CSRF
   if (err.code === 'EBADCSRFTOKEN') {
-    return res.status(403).json({ error: 'Token CSRF invalide' });
+    console.log('[CSRF] Token invalide détecté:', {
+      url: req.url,
+      method: req.method,
+      headers: req.headers,
+      cookies: req.cookies
+    });
+    return res.status(403).json({ 
+      error: 'Token CSRF invalide',
+      message: 'Veuillez rafraîchir la page et réessayer'
+    });
   }
   
   // Erreur de rate limiting
