@@ -345,7 +345,6 @@ router.delete('/:identifier', async (req, res) => {
 
     // Delete related records first
     await prisma.visit.deleteMany({ where: { visitorId: visitor.id } });
-    await prisma.badge.deleteMany({ where: { visitorId: visitor.id } });
     
     // Delete visitor
     await prisma.gooseCorpUser.delete({ where: { id: visitor.id } });
@@ -407,14 +406,6 @@ router.post('/:identifier/checkout', async (req, res) => {
         formationId: visitor.formationId
       }
     });
-
-    // Deactivate badge if exists
-    if (visitor.badge) {
-      await prisma.badge.update({
-        where: { id: visitor.badge.id },
-        data: { isActive: false }
-      });
-    }
 
     console.log('[DEBUG] Checkout successful for visitor:', updatedVisitor.id);
     res.json({
@@ -636,7 +627,6 @@ router.get('/:identifier/status', async (req, res) => {
         visitDuration,
         staff: visitor.staff,
         formation: visitor.formation,
-        badge: visitor.badge,
         lastVisit: visitor.visits[0] || null
       }
     });
@@ -741,13 +731,7 @@ router.post('/:identifier/reentry', [
       }
     });
 
-    // Activate badge if exists
-    if (visitor.badge) {
-      await prisma.badge.update({
-        where: { id: visitor.badge.id },
-        data: { isActive: true }
-      });
-    }
+
 
     res.json({
       message: 'Visitor re-entry successful',
@@ -894,8 +878,7 @@ router.post('/checkout/unique/:uniqueId', async (req, res) => {
       },
       include: {
         staff: true,
-        formation: true,
-        badge: true
+        formation: true
       }
     });
 
@@ -910,14 +893,6 @@ router.post('/checkout/unique/:uniqueId', async (req, res) => {
         formationId: visitor.formationId
       }
     });
-
-    // Deactivate badge if exists
-    if (visitor.badge) {
-      await prisma.badge.update({
-        where: { id: visitor.badge.id },
-        data: { isActive: false }
-      });
-    }
 
     console.log('[DEBUG] Checkout successful for visitor:', updatedVisitor.uniqueId);
     res.json({
