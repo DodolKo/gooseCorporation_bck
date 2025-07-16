@@ -42,7 +42,6 @@ model GooseCorpUser {
   status      VisitStatus @default(INSIDE)
   checkInTime DateTime @default(now())
   checkOutTime DateTime?
-  badge       Badge?
   visits      Visit[]  // History of visits
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -100,16 +99,7 @@ model GooseCorpFormation {
   updatedAt   DateTime @updatedAt
 }
 
-// Digital badges
-model Badge {
-  id        Int      @id @default(autoincrement())
-  badgeId   String   @unique // Soft ID like "GC-2024-001"
-  visitorId Int      @unique
-  visitor   GooseCorpUser @relation(fields: [visitorId], references: [id])
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  isActive  Boolean  @default(true)
-}
+
 
 // Log model for activity tracking
 model Log {

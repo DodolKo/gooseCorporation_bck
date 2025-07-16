@@ -172,7 +172,6 @@ router.get('/', [
       include: {
         staff: true,
         formation: true,
-        badge: true,
         visits: {
           orderBy: { timestamp: 'desc' },
           take: 5
@@ -216,7 +215,6 @@ router.get('/:identifier', async (req, res) => {
         include: {
           staff: true,
           formation: true,
-          badge: true,
           visits: {
             orderBy: { timestamp: 'desc' },
             include: {
@@ -234,7 +232,6 @@ router.get('/:identifier', async (req, res) => {
         include: {
           staff: true,
           formation: true,
-          badge: true,
           visits: {
             orderBy: { timestamp: 'desc' },
             include: {
@@ -315,7 +312,6 @@ router.put('/:identifier', visitorValidation, async (req, res) => {
       include: {
         staff: true,
         formation: true,
-        badge: true
       }
     });
 
@@ -397,7 +393,6 @@ router.post('/:identifier/checkout', async (req, res) => {
       include: {
         staff: true,
         formation: true,
-        badge: true
       }
     });
 
@@ -486,7 +481,6 @@ router.post('/:identifier/return', [
       include: {
         staff: true,
         formation: true,
-        badge: true
       }
     });
 
@@ -532,7 +526,6 @@ router.get('/search/email/:email', async (req, res) => {
       include: {
         staff: true,
         formation: true,
-        badge: true,
         visits: {
           orderBy: { timestamp: 'desc' },
           take: 5
@@ -559,7 +552,6 @@ router.get('/status/inside', async (req, res) => {
       include: {
         staff: true,
         formation: true,
-        badge: true
       },
       orderBy: {
         checkInTime: 'desc'
@@ -591,7 +583,6 @@ router.get('/:identifier/status', async (req, res) => {
         include: { 
           staff: true, 
           formation: true, 
-          badge: true,
           visits: {
             orderBy: { timestamp: 'desc' },
             take: 1
@@ -604,7 +595,6 @@ router.get('/:identifier/status', async (req, res) => {
         include: { 
           staff: true, 
           formation: true, 
-          badge: true,
           visits: {
             orderBy: { timestamp: 'desc' },
             take: 1
@@ -677,12 +667,12 @@ router.post('/:identifier/reentry', [
     if (!isNaN(identifier)) {
       visitor = await prisma.gooseCorpUser.findUnique({ 
         where: { id: parseInt(identifier) },
-        include: { staff: true, formation: true, badge: true }
+        include: { staff: true, formation: true }
       });
     } else {
       visitor = await prisma.gooseCorpUser.findUnique({ 
         where: { uniqueId: identifier },
-        include: { staff: true, formation: true, badge: true }
+        include: { staff: true, formation: true }
       });
     }
 
@@ -736,7 +726,6 @@ router.post('/:identifier/reentry', [
       include: {
         staff: true,
         formation: true,
-        badge: true
       }
     });
 
@@ -868,86 +857,7 @@ router.get('/public/health', (req, res) => {
   });
 });
 
-// Check out visitor using badgeId
-router.post('/checkout/badge/:badgeId', async (req, res) => {
-  try {
-    const { badgeId } = req.params;
-    console.log('[DEBUG] Checkout request with badgeId:', badgeId);
-    console.log('[DEBUG] Headers:', req.headers);
-    console.log('[DEBUG] Body:', req.body);
 
-    // First, find the badge to get the visitor
-    const badge = await prisma.badge.findUnique({
-      where: { badgeId },
-      include: {
-        visitor: {
-          include: {
-            staff: true,
-            formation: true,
-            badge: true
-          }
-        }
-      }
-    });
-
-    if (!badge) {
-      return res.status(404).json({ error: 'Badge non trouvé. Vérifiez votre ID.' });
-    }
-
-    const visitor = badge.visitor;
-
-    if (!visitor) {
-      return res.status(404).json({ error: 'Visiteur associé au badge non trouvé.' });
-    }
-
-    if (visitor.status === 'OUTSIDE') {
-      console.log('[DEBUG] Visitor already checked out:', visitor.uniqueId);
-      return res.status(400).json({ error: 'Le visiteur est déjà sorti du bâtiment.' });
-    }
-
-    // Update visitor status using uniqueId
-    const updatedVisitor = await prisma.gooseCorpUser.update({
-      where: { uniqueId: visitor.uniqueId },
-      data: {
-        status: 'OUTSIDE',
-        checkOutTime: new Date()
-      },
-      include: {
-        staff: true,
-        formation: true,
-        badge: true
-      }
-    });
-
-    // Create visit history entry
-    await prisma.visit.create({
-      data: {
-        visitorId: visitor.id,
-        action: 'CHECK_OUT',
-        timestamp: updatedVisitor.checkOutTime,
-        details: 'Visitor checked out using badge',
-        staffId: visitor.staffId,
-        formationId: visitor.formationId
-      }
-    });
-
-    // Deactivate badge
-    await prisma.badge.update({
-      where: { id: badge.id },
-      data: { isActive: false }
-    });
-
-    console.log('[DEBUG] Checkout successful for visitor:', updatedVisitor.uniqueId);
-    res.json({
-      message: 'Sortie effectuée avec succès',
-      visitor: updatedVisitor
-    });
-
-  } catch (error) {
-    console.error('Error checking out visitor with badge:', error);
-    res.status(500).json({ error: 'Erreur lors de la sortie du visiteur' });
-  }
-});
 
 // Check out visitor using uniqueId
 router.post('/checkout/unique/:uniqueId', async (req, res) => {
@@ -963,7 +873,6 @@ router.post('/checkout/unique/:uniqueId', async (req, res) => {
       include: {
         staff: true,
         formation: true,
-        badge: true
       }
     });
 

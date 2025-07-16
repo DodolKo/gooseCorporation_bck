@@ -280,7 +280,6 @@ app.use('/api/visitors', (req, res, next) => {
 
 // Routes API (sans CSRF)
 app.use('/api/visitors', require('./routes/visitors'));
-app.use('/api/badges', require('./routes/badges'));
 app.use('/api/admin', require('./routes/adminApi'));
 
 // Admin web interface (sans CSRF pour Railway)

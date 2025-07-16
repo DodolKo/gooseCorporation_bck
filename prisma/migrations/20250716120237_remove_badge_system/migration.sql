@@ -1,0 +1,1 @@
+-- DropTable\nDROP TABLE "Badge";
