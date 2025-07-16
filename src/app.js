@@ -21,9 +21,12 @@ app.use((req, res, next) => {
     'http://localhost:8080'
   ];
   
-  // Permet l'origine si elle est dans la liste ou si on est en développement
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
+  // Permet l'origine si elle est dans la liste, si pas d'origine (same-origin), ou si c'est Railway
+  if (allowedOrigins.includes(origin) || !origin || (origin && origin.includes('railway.app'))) {
+    res.header('Access-Control-Allow-Origin', origin || req.headers.host || '*');
+    console.log('[CORS] Origine autorisée:', origin || 'same-origin');
+  } else {
+    console.log('[CORS] Origine refusée:', origin);
   }
   
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
