@@ -560,6 +560,9 @@
                 }
             });
             
+            console.log('Formation ID:', formationId);
+            console.log('Data to send:', data);
+            
             // Envoyer la requête de modification
             fetch(`/admin/formations/edit/${formationId}`, {
                 method: 'POST',
@@ -569,8 +572,13 @@
                 credentials: 'include',
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
                     // Afficher le message de succès
                     document.getElementById('editFormationSuccess').textContent = 'Formation modifiée avec succès!';
