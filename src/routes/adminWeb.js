@@ -144,8 +144,7 @@ router.get('/current-visitors', authenticateWeb, async (req, res) => {
       where: { status: 'INSIDE' },
       include: {
         staff: true,
-        formation: true,
-        badge: true
+        formation: true
       },
       orderBy: {
         checkInTime: 'desc'
@@ -199,8 +198,7 @@ router.get('/visitors', authenticateWeb, async (req, res) => {
       where: whereClause,
       include: {
         staff: true,
-        formation: true,
-        badge: true
+        formation: true
       },
       orderBy: {
         checkInTime: 'desc'
@@ -417,11 +415,7 @@ router.get('/history', authenticateWeb, async (req, res) => {
     const visits = await prisma.visit.findMany({
       where: whereClause,
       include: {
-        visitor: {
-          include: {
-            badge: true
-          }
-        },
+        visitor: true,
         staff: true,
         formation: true
       },
@@ -464,15 +458,6 @@ router.get('/history', authenticateWeb, async (req, res) => {
 async function getDashboardData() {
   // Get basic statistics
   const totalVisitors = await prisma.gooseCorpUser.count();
-  const totalBadges = await prisma.badge.count();
-  const activeBadges = await prisma.badge.count({
-    where: {
-      isActive: true,
-      expiresAt: {
-        gt: new Date()
-      }
-    }
-  });
   const totalStaff = await prisma.gooseCorpStaff.count();
   const activeStaff = await prisma.gooseCorpStaff.count({
     where: { isActive: true }
@@ -487,8 +472,7 @@ async function getDashboardData() {
     where: { status: 'INSIDE' },
     include: {
       staff: true,
-      formation: true,
-      badge: true
+      formation: true
     },
     orderBy: {
       checkInTime: 'desc'
@@ -522,8 +506,6 @@ async function getDashboardData() {
   return {
     statistics: {
       totalVisitors,
-      totalBadges,
-      activeBadges,
       totalStaff,
       activeStaff,
       totalFormations,
