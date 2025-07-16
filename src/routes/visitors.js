@@ -366,6 +366,9 @@ router.delete('/:identifier', async (req, res) => {
 router.post('/:identifier/checkout', async (req, res) => {
   try {
     const { identifier } = req.params;
+    console.log('[DEBUG] Checkout request for visitor:', identifier);
+    console.log('[DEBUG] Headers:', req.headers);
+    console.log('[DEBUG] Body:', req.body);
 
     // Find visitor
     let visitor = null;
@@ -380,6 +383,7 @@ router.post('/:identifier/checkout', async (req, res) => {
     }
 
     if (visitor.status === 'OUTSIDE') {
+      console.log('[DEBUG] Visitor already checked out:', identifier);
       return res.status(400).json({ error: 'Visitor is already checked out' });
     }
 
@@ -417,6 +421,7 @@ router.post('/:identifier/checkout', async (req, res) => {
       });
     }
 
+    console.log('[DEBUG] Checkout successful for visitor:', updatedVisitor.id);
     res.json({
       message: 'Visitor checked out successfully',
       visitor: updatedVisitor

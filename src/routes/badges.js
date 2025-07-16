@@ -13,6 +13,9 @@ function generateBadgeId() {
 router.post('/generate/:visitorId', async (req, res) => {
   try {
     const { visitorId } = req.params;
+    console.log('[DEBUG] Badge generation request for visitor:', visitorId);
+    console.log('[DEBUG] Headers:', req.headers);
+    console.log('[DEBUG] Body:', req.body);
 
     // Check if visitor exists
     const visitor = await prisma.gooseCorpUser.findUnique({
@@ -30,6 +33,7 @@ router.post('/generate/:visitorId', async (req, res) => {
 
     // Check if badge already exists
     if (visitor.badge) {
+      console.log('[DEBUG] Badge already exists for visitor:', visitorId);
       return res.status(400).json({ error: 'Badge already exists for this visitor' });
     }
 
@@ -56,6 +60,7 @@ router.post('/generate/:visitorId', async (req, res) => {
       }
     });
 
+    console.log('[DEBUG] Badge generated successfully for visitor:', visitorId);
     res.status(201).json({
       message: 'Badge generated successfully',
       badge,
@@ -72,6 +77,8 @@ router.post('/generate/:visitorId', async (req, res) => {
 router.get('/verify/:badgeId', async (req, res) => {
   try {
     const { badgeId } = req.params;
+    console.log('[DEBUG] Badge verification request for:', badgeId);
+    console.log('[DEBUG] Headers:', req.headers);
 
     const badge = await prisma.badge.findUnique({
       where: { badgeId },
@@ -107,6 +114,7 @@ router.get('/verify/:badgeId', async (req, res) => {
       });
     }
 
+    console.log('[DEBUG] Badge verification successful for:', badgeId);
     res.json({
       message: 'Badge is valid',
       badge: badge,
