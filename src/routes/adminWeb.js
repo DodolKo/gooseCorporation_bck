@@ -85,6 +85,8 @@ router.post('/login-web', [
     // Set cookie
     res.cookie('adminToken', token, { 
       httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', // HTTPS uniquement en production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-origin en production
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
