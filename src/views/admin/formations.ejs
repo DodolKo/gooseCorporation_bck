@@ -488,6 +488,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
                 
@@ -565,6 +566,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
@@ -611,7 +613,8 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        credentials: 'include'
                     })
                     .then(response => response.json())
                     .then(data => {
