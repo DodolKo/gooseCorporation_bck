@@ -577,6 +577,86 @@ router.get('/status/inside', async (req, res) => {
   }
 });
 
+// Check visitor status endpoint
+router.get('/:identifier/status', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    console.log('[DEBUG] Status check request for visitor:', identifier);
+
+    // Find visitor by ID or uniqueId
+    let visitor = null;
+    if (!isNaN(identifier)) {
+      visitor = await prisma.gooseCorpUser.findUnique({ 
+        where: { id: parseInt(identifier) },
+        include: { 
+          staff: true, 
+          formation: true, 
+          badge: true,
+          visits: {
+            orderBy: { timestamp: 'desc' },
+            take: 1
+          }
+        }
+      });
+    } else {
+      visitor = await prisma.gooseCorpUser.findUnique({ 
+        where: { uniqueId: identifier },
+        include: { 
+          staff: true, 
+          formation: true, 
+          badge: true,
+          visits: {
+            orderBy: { timestamp: 'desc' },
+            take: 1
+          }
+        }
+      });
+    }
+
+    if (!visitor) {
+      return res.status(404).json({ 
+        error: 'Visitor not found',
+        exists: false
+      });
+    }
+
+    // Calculate visit duration if inside
+    let visitDuration = null;
+    if (visitor.status === 'INSIDE' && visitor.checkInTime) {
+      const now = new Date();
+      const checkInTime = new Date(visitor.checkInTime);
+      const diffMs = now - checkInTime;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      visitDuration = `${diffHours}h ${diffMinutes}m`;
+    }
+
+    res.json({
+      exists: true,
+      visitor: {
+        id: visitor.id,
+        uniqueId: visitor.uniqueId,
+        firstName: visitor.firstName,
+        lastName: visitor.lastName,
+        email: visitor.email,
+        status: visitor.status,
+        visitReason: visitor.visitReason,
+        checkInTime: visitor.checkInTime,
+        checkOutTime: visitor.checkOutTime,
+        visitDuration,
+        staff: visitor.staff,
+        formation: visitor.formation,
+        badge: visitor.badge,
+        lastVisit: visitor.visits[0] || null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking visitor status:', error);
+    res.status(500).json({ error: 'Failed to check visitor status' });
+  }
+});
+
 // Re-entry endpoint for existing visitors
 router.post('/:identifier/reentry', [
   body('visitReason').isIn(['MEETING', 'FORMATION', 'OTHER', 'DELIVERY', 'MAINTENANCE']).withMessage('Invalid visit reason'),

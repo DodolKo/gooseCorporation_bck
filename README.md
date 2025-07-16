@@ -49,12 +49,23 @@ gooseCorp_bck/
 ### Entités Principales
 
 - **AdminUser**: Utilisateurs administrateurs du système
-- **GooseCorpUser**: Visiteurs enregistrés
+- **GooseCorpUser**: Visiteurs enregistrés avec statut (INSIDE/OUTSIDE)
 - **GooseCorpStaff**: Personnel de l'entreprise
 - **GooseCorpFormation**: Formations/événements
-- **Visit**: Historique des entrées/sorties
-- **Badge**: Badges d'accès temporaires
-- **Log**: Journalisation des actions
+- **Visit**: Historique des entrées/sorties avec actions (CHECK_IN/CHECK_OUT/RETURN)
+- **Badge**: Badges d'accès temporaires avec expiration
+- **Log**: Journalisation des actions administratives
+
+### Fonctionnalités Principales
+
+- ✅ **Enregistrement de visiteurs** avec QR code généré
+- ✅ **Gestion des badges temporaires** avec expiration automatique
+- ✅ **Suivi des statuts** (à l'intérieur/à l'extérieur du bâtiment)
+- ✅ **Historique complet** des entrées et sorties
+- ✅ **Re-entrées** pour visiteurs avec badges existants
+- ✅ **Vérification automatique** des statuts avant actions
+- ✅ **API publique** pour les données frontend
+- ✅ **Interface d'administration** complète avec authentification
 
 ### Relations
 
@@ -198,12 +209,36 @@ npm run seed
 | GET | `/api/admin/staff` | Gestion du personnel |
 | GET | `/api/admin/logs` | Journaux d'activité |
 
-### Public
+### API Visiteurs
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| GET | `/health` | Vérification de santé |
-| POST | `/api/visitors/register` | Enregistrement visiteur |
+| POST | `/api/visitors` | Enregistrement visiteur |
+| GET | `/api/visitors/:id/status` | Vérification du statut visiteur |
+| POST | `/api/visitors/:id/checkout` | Sortie visiteur |
+| POST | `/api/visitors/:id/reentry` | Re-entrée visiteur existant |
+| GET | `/api/visitors/status/inside` | Visiteurs actuellement présents |
+
+### API Publique (Frontend)
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/visitors/public/staff` | Liste du personnel actif |
+| GET | `/api/visitors/public/formations` | Liste des formations actives |
+| GET | `/api/visitors/public/health` | Vérification de santé API |
+
+### Badges
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/badges/generate/:visitorId` | Génération badge temporaire |
+| GET | `/api/badges/:badgeId` | Informations du badge |
+
+### Système
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/health` | Vérification de santé générale |
 
 ## 🔍 Monitoring et Logs
 
@@ -342,32 +377,84 @@ npm start
    cat .env
    ```
 
-## 🚀 Prochaines Étapes - Frontend
+## 🌐 Intégration Frontend
 
-Le backend est maintenant prêt pour l'intégration frontend. Points clés pour le développement frontend :
-
-### API Base URL
-```javascript
-const API_BASE_URL = 'http://localhost:3000/api';
+### Frontend Repository
+Le frontend est situé dans un repository séparé avec la structure suivante :
+```
+gooseCorp_frt/
+├── src/
+│   ├── api.js              # Services API
+│   ├── utils.js            # Utilitaires généraux
+│   ├── main.js             # Point d'entrée principal
+│   ├── checkout-main.js    # Point d'entrée page checkout
+│   ├── entry.js            # Gestion des entrées
+│   ├── checkin.js          # Formulaire d'enregistrement
+│   ├── checkout.js         # Formulaire de sortie
+│   └── assets/             # Fichiers statiques
+├── index.html              # Page d'entrée
+├── checkout.html           # Page de sortie
+└── package.json
 ```
 
-### Authentification
-- Utiliser JWT pour l'authentification API
-- Stocker le token en localStorage ou sessionStorage
-- Inclure le token dans les headers : `Authorization: Bearer ${token}`
+### Fonctionnalités Frontend Implémentées
 
-### Endpoints Principaux
-- `/api/admin/login` - Authentification
-- `/api/admin/dashboard` - Données du tableau de bord
-- `/api/visitors/register` - Enregistrement visiteurs
-- `/api/admin/visitors` - CRUD visiteurs
+#### 📱 **Page d'Entrée (index.html)**
+- ✅ Enregistrement nouveaux visiteurs
+- ✅ Re-entrée avec badges existants
+- ✅ Vérification automatique des statuts
+- ✅ Génération de QR codes pour les visiteurs
+- ✅ Validation en temps réel des formulaires
+- ✅ Chargement dynamique des données (staff/formations)
 
-### CORS
+#### 🚪 **Page de Sortie (checkout.html)**
+- ✅ Sortie visiteurs par ID
+- ✅ Vérification des statuts avant checkout
+- ✅ Affichage des informations de visite
+- ✅ Calcul automatique de la durée de visite
+- ✅ Prévention des sorties multiples
+
+#### 🔧 **Fonctionnalités Techniques**
+- ✅ API client avec gestion d'erreurs
+- ✅ Système de notifications
+- ✅ Validation côté client
+- ✅ Gestion des états de chargement
+- ✅ Interface responsive
+
+### Configuration API Frontend
+
+```javascript
+// Configuration recommandée
+const CONFIG = {
+    API_BASE_URL: 'http://localhost:3000/api',
+    RETRY_ATTEMPTS: 3,
+    RETRY_DELAY: 1000
+};
+
+// Exemple d'utilisation
+const response = await fetch(`${CONFIG.API_BASE_URL}/visitors/public/staff`);
+const { staff } = await response.json();
+```
+
+### Endpoints Utilisés par le Frontend
+
+#### **Données Publiques**
+- `GET /api/visitors/public/staff` - Liste du personnel
+- `GET /api/visitors/public/formations` - Liste des formations
+- `GET /api/visitors/public/health` - Health check
+
+#### **Gestion des Visiteurs**
+- `POST /api/visitors` - Enregistrement visiteur
+- `GET /api/visitors/:id/status` - Vérification statut
+- `POST /api/visitors/:id/checkout` - Sortie visiteur
+- `POST /api/visitors/:id/reentry` - Re-entrée visiteur
+
+### CORS Configuration
 Le backend accepte les requêtes depuis :
-- `http://localhost:3000` (React dev server)
-- `http://localhost:3001` 
-- `http://localhost:5173` (Vite)
-- `http://localhost:8080`
+- `http://localhost:5173` (Vite dev server)
+- `https://*.netlify.app` (Déploiement Netlify)
+- `https://*.railway.app` (Déploiement Railway)
+- Mode développement : toutes les origines autorisées
 
 ---
 
@@ -377,5 +464,34 @@ Pour toute question ou problème :
 1. Vérifiez les logs : `docker-compose logs`
 2. Consultez la documentation Prisma : https://www.prisma.io/docs
 3. Vérifiez l'état des services : `docker-compose ps`
+4. Consultez les guides d'intégration : `FRONTEND_INTEGRATION_GUIDE.md`
 
-**Le système est maintenant prêt pour le développement du frontend ! 🚀** 
+## 🎯 Statut du Projet
+
+### Backend ✅ **COMPLET**
+- ✅ API REST complète avec tous les endpoints
+- ✅ Authentification JWT et sécurité
+- ✅ Base de données PostgreSQL avec Prisma
+- ✅ Interface d'administration web
+- ✅ Gestion des visiteurs et badges
+- ✅ Historique des visites
+- ✅ API publique pour frontend
+- ✅ Déploiement Railway configuré
+
+### Frontend ✅ **COMPLET**
+- ✅ Interface utilisateur complète
+- ✅ Enregistrement et sortie visiteurs
+- ✅ Génération de QR codes
+- ✅ Vérification automatique des statuts
+- ✅ Gestion des badges existants
+- ✅ Interface responsive
+- ✅ Déploiement Netlify configuré
+
+### Intégration ✅ **FONCTIONNELLE**
+- ✅ Communication API backend ↔ frontend
+- ✅ CORS configuré pour tous les environnements
+- ✅ Gestion d'erreurs et états de chargement
+- ✅ Validation côté client et serveur
+- ✅ Système de notifications
+
+**Le système GooseCorp est maintenant complet et opérationnel ! 🎉** 
