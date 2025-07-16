@@ -13,8 +13,19 @@ const app = express();
 
 // Middleware CORS global pour Railway - URGENT FIX
 app.use((req, res, next) => {
-  // Headers CORS permissifs
-  res.header('Access-Control-Allow-Origin', '*');
+  // Headers CORS avec support des cookies
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://goosecorporationbck-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ];
+  
+  // Permet l'origine si elle est dans la liste ou si on est en développement
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token');
   res.header('Access-Control-Allow-Credentials', 'true');
