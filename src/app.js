@@ -11,26 +11,29 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware CORS global pour Railway - URGENT FIX
+// Middleware CORS global PERMISSIF pour Netlify + Railway
 app.use((req, res, next) => {
-  // Headers CORS avec support des cookies
   const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://goosecorporationbck-production.up.railway.app',
-    'http://localhost:3000',
-    'http://localhost:8080'
-  ];
   
-  // Permet l'origine si elle est dans la liste, si pas d'origine (same-origin), ou si c'est Railway
-  if (allowedOrigins.includes(origin) || !origin || (origin && origin.includes('railway.app'))) {
-    res.header('Access-Control-Allow-Origin', origin || req.headers.host || '*');
-    console.log('[CORS] Origine autorisée:', origin || 'same-origin');
+  // Autoriser TOUTES les origines Netlify, Railway et développement
+  const isAllowedOrigin = !origin || // Same-origin
+    origin.includes('netlify.app') || // Tous les domaines Netlify
+    origin.includes('netlify.com') || // Tous les domaines Netlify
+    origin.includes('railway.app') || // Tous les domaines Railway
+    origin.includes('localhost') || // Développement local
+    origin.includes('127.0.0.1'); // Développement local
+  
+  if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    console.log('[CORS] ✅ Origine autorisée:', origin || 'same-origin');
   } else {
-    console.log('[CORS] Origine refusée:', origin);
+    // En mode production permissif, autoriser quand même mais logger
+    res.header('Access-Control-Allow-Origin', origin || '*');
+    console.log('[CORS] ⚠️ Origine non standard autorisée:', origin);
   }
   
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token, Cache-Control');
   res.header('Access-Control-Allow-Credentials', 'true');
   
   // Répondre immédiatement aux requêtes OPTIONS
