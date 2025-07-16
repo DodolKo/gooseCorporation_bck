@@ -949,4 +949,77 @@ router.post('/checkout/badge/:badgeId', async (req, res) => {
   }
 });
 
+// Check out visitor using uniqueId
+router.post('/checkout/unique/:uniqueId', async (req, res) => {
+  try {
+    const { uniqueId } = req.params;
+    console.log('[DEBUG] Checkout request with uniqueId:', uniqueId);
+    console.log('[DEBUG] Headers:', req.headers);
+    console.log('[DEBUG] Body:', req.body);
+
+    // Find the visitor by uniqueId
+    const visitor = await prisma.gooseCorpUser.findUnique({
+      where: { uniqueId },
+      include: {
+        staff: true,
+        formation: true,
+        badge: true
+      }
+    });
+
+    if (!visitor) {
+      return res.status(404).json({ error: 'Visiteur non trouvé. Vérifiez votre ID.' });
+    }
+
+    if (visitor.status === 'OUTSIDE') {
+      console.log('[DEBUG] Visitor already checked out:', visitor.uniqueId);
+      return res.status(400).json({ error: 'Le visiteur est déjà sorti du bâtiment.' });
+    }
+
+    // Update visitor status
+    const updatedVisitor = await prisma.gooseCorpUser.update({
+      where: { uniqueId: visitor.uniqueId },
+      data: {
+        status: 'OUTSIDE',
+        checkOutTime: new Date()
+      },
+      include: {
+        staff: true,
+        formation: true,
+        badge: true
+      }
+    });
+
+    // Create visit history entry
+    await prisma.visit.create({
+      data: {
+        visitorId: visitor.id,
+        action: 'CHECK_OUT',
+        timestamp: updatedVisitor.checkOutTime,
+        details: 'Visitor checked out using uniqueId',
+        staffId: visitor.staffId,
+        formationId: visitor.formationId
+      }
+    });
+
+    // Deactivate badge if exists
+    if (visitor.badge) {
+      await prisma.badge.update({
+        where: { id: visitor.badge.id },
+        data: { isActive: false }
+      });
+    }
+
+    console.log('[DEBUG] Checkout successful for visitor:', updatedVisitor.uniqueId);
+    res.json({
+      message: 'Sortie effectuée avec succès',
+      visitor: updatedVisitor
+    });
+
+  } catch (error) {
+    console.error('Error checking out visitor with uniqueId:', error);
+    res.status(500).json({ error: 'Erreur lors de la sortie du visiteur' });
+  }
+});
+
 module.exports = router; 
