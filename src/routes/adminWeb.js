@@ -544,7 +544,7 @@ router.post('/staff/add', [
   body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
   body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
   body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
-  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+  body('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -603,7 +603,7 @@ router.post('/formations/add', [
   body('endDate').optional().isISO8601().withMessage('Valid end date is required'),
   body('maxAttendees').optional().isInt({ min: 1 }).withMessage('Max attendees must be a positive number'),
   body('instructor').optional().trim().isLength({ min: 2 }).withMessage('Instructor must be at least 2 characters'),
-  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+  body('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -653,7 +653,7 @@ router.post('/staff/edit/:id', [
   body('department').optional().trim().isLength({ min: 2 }).withMessage('Department must be at least 2 characters'),
   body('office').optional().trim().isLength({ min: 2 }).withMessage('Office must be at least 2 characters'),
   body('position').optional().trim().isLength({ min: 2 }).withMessage('Position must be at least 2 characters'),
-  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+  body('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -725,7 +725,7 @@ router.post('/formations/edit/:id', [
   body('endDate').optional().isISO8601().withMessage('Valid end date is required'),
   body('maxAttendees').optional().isInt({ min: 1 }).withMessage('Max attendees must be a positive number'),
   body('instructor').optional().trim().isLength({ min: 2 }).withMessage('Instructor must be at least 2 characters'),
-  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
+  body('isActive').optional().isIn(['true', 'false']).withMessage('isActive must be true or false')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
