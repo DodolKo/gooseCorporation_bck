@@ -2,7 +2,7 @@
 
 ## 📋 Vue d'ensemble
 
-GooseCorp Backend est une API REST sécurisée pour la gestion des visiteurs, du personnel et des formations dans un bâtiment d'entreprise. Le système comprend un CMS d'administration complet avec authentification JWT.
+GooseCorp Backend est une API REST sécurisée pour la gestion des visiteurs, du personnel et des formations dans un bâtiment d'entreprise. Le système comprend un CMS d'administration complet avec authentification JWT et une API publique pour le frontend.
 
 ## 🏗️ Architecture
 
@@ -16,6 +16,7 @@ GooseCorp Backend est une API REST sécurisée pour la gestion des visiteurs, du
 - **Sécurité**: Helmet, CORS, CSRF, Rate Limiting
 - **Templating**: EJS
 - **Containerisation**: Docker & Docker Compose
+- **Déploiement**: Railway
 
 ### Structure du Projet
 
@@ -27,7 +28,8 @@ gooseCorp_bck/
 │   ├── routes/
 │   │   ├── adminApi.js          # API REST pour l'admin
 │   │   ├── adminWeb.js          # Interface web d'administration
-│   │   └── visitors.js          # API pour les visiteurs
+│   │   ├── visitors.js          # API pour les visiteurs
+│   │   └── badges.js            # API pour les badges
 │   ├── utils/
 │   │   └── seed.js              # Peuplement initial de la BDD
 │   ├── views/
@@ -40,6 +42,7 @@ gooseCorp_bck/
 ├── prisma/
 │   └── schema.prisma            # Schéma de base de données
 ├── docker-compose.yml           # Services Docker
+├── railway.toml                 # Configuration Railway
 ├── .env                         # Variables d'environnement
 └── package.json
 ```
@@ -207,17 +210,28 @@ npm run seed
 | PUT | `/api/admin/visitors/:id` | Modifier un visiteur |
 | DELETE | `/api/admin/visitors/:id` | Supprimer un visiteur |
 | GET | `/api/admin/staff` | Gestion du personnel |
+| POST | `/api/admin/staff` | Créer un membre du personnel |
+| PUT | `/api/admin/staff/:id` | Modifier un membre du personnel |
+| DELETE | `/api/admin/staff/:id` | Supprimer un membre du personnel |
+| GET | `/api/admin/formations` | Gestion des formations |
+| POST | `/api/admin/formations` | Créer une formation |
+| PUT | `/api/admin/formations/:id` | Modifier une formation |
+| DELETE | `/api/admin/formations/:id` | Supprimer une formation |
 | GET | `/api/admin/logs` | Journaux d'activité |
+| GET | `/api/admin/history` | Historique des visites |
 
 ### API Visiteurs
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| POST | `/api/visitors` | Enregistrement visiteur |
-| GET | `/api/visitors/:id/status` | Vérification du statut visiteur |
-| POST | `/api/visitors/:id/checkout` | Sortie visiteur |
-| POST | `/api/visitors/:id/reentry` | Re-entrée visiteur existant |
+| POST | `/api/visitors` | Enregistrement nouveau visiteur |
+| GET | `/api/visitors/:identifier/status` | Vérification du statut visiteur |
+| POST | `/api/visitors/:identifier/checkout` | Sortie visiteur |
+| POST | `/api/visitors/:identifier/reentry` | Re-entrée visiteur existant |
 | GET | `/api/visitors/status/inside` | Visiteurs actuellement présents |
+| GET | `/api/visitors/search/email/:email` | Recherche visiteur par email |
+| PUT | `/api/visitors/:identifier` | Modifier un visiteur |
+| DELETE | `/api/visitors/:identifier` | Supprimer un visiteur |
 
 ### API Publique (Frontend)
 
@@ -227,18 +241,21 @@ npm run seed
 | GET | `/api/visitors/public/formations` | Liste des formations actives |
 | GET | `/api/visitors/public/health` | Vérification de santé API |
 
-### Badges
+### API Badges
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | POST | `/api/badges/generate/:visitorId` | Génération badge temporaire |
-| GET | `/api/badges/:badgeId` | Informations du badge |
+| GET | `/api/badges/verify/:badgeId` | Vérification badge |
+| GET | `/api/badges` | Liste tous les badges |
+| PATCH | `/api/badges/deactivate/:badgeId` | Désactiver un badge |
 
 ### Système
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | GET | `/health` | Vérification de santé générale |
+| GET | `/api/visitors/test` | Test des routes visiteurs |
 
 ## 🔍 Monitoring et Logs
 
@@ -306,6 +323,20 @@ curl -X POST -H "Content-Type: application/json" \
 # Test avec token
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   http://localhost:3000/api/admin/dashboard
+
+# Test création visiteur
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"firstName":"Test","lastName":"User","email":"test@example.com","visitReason":"OTHER"}' \
+  http://localhost:3000/api/visitors
+
+# Test vérification statut
+curl http://localhost:3000/api/visitors/VISITOR_ID/status
+
+# Test génération badge
+curl -X POST http://localhost:3000/api/badges/generate/VISITOR_ID
+
+# Test vérification badge
+curl http://localhost:3000/api/badges/verify/BADGE_ID
 ```
 
 ### Validation de l'Environnement
@@ -332,6 +363,28 @@ JWT_SECRET="CHANGEZ-MOI-EN-PRODUCTION"
 SESSION_SECRET="CHANGEZ-MOI-EN-PRODUCTION"
 ALLOWED_ORIGINS="https://votre-domaine.com"
 PORT=3000
+```
+
+### Déploiement Railway
+
+```bash
+# Installer Railway CLI
+npm install -g @railway/cli
+
+# Se connecter
+railway login
+
+# Lier le projet
+railway link
+
+# Déployer
+railway up
+
+# Vérifier le statut
+railway status
+
+# Voir les logs
+railway logs
 ```
 
 ### Commandes de Déploiement
@@ -377,6 +430,12 @@ npm start
    cat .env
    ```
 
+5. **Problème de badges**
+   ```bash
+   # Vérifier qu'un visiteur existe avant de générer un badge
+   curl http://localhost:3000/api/visitors/VISITOR_ID/status
+   ```
+
 ## 🌐 Intégration Frontend
 
 ### Frontend Repository
@@ -385,12 +444,14 @@ Le frontend est situé dans un repository séparé avec la structure suivante :
 gooseCorp_frt/
 ├── src/
 │   ├── api.js              # Services API
+│   ├── config.js           # Configuration
 │   ├── utils.js            # Utilitaires généraux
 │   ├── main.js             # Point d'entrée principal
 │   ├── checkout-main.js    # Point d'entrée page checkout
 │   ├── entry.js            # Gestion des entrées
 │   ├── checkin.js          # Formulaire d'enregistrement
 │   ├── checkout.js         # Formulaire de sortie
+│   ├── diagnostics.js      # Diagnostic API
 │   └── assets/             # Fichiers statiques
 ├── index.html              # Page d'entrée
 ├── checkout.html           # Page de sortie
@@ -427,8 +488,11 @@ gooseCorp_frt/
 // Configuration recommandée
 const CONFIG = {
     API_BASE_URL: 'http://localhost:3000/api',
-    RETRY_ATTEMPTS: 3,
-    RETRY_DELAY: 1000
+    TIMEOUT: 10000,
+    MAX_RETRIES: 3,
+    RETRY_DELAY: 1000,
+    CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+    DEMO_MODE: false
 };
 
 // Exemple d'utilisation
