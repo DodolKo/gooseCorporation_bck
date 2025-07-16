@@ -645,6 +645,12 @@ router.post('/formations/add', [
 
 // Edit staff member (web form)
 router.post('/staff/edit/:id', [
+  (req, res, next) => {
+    console.log(`[DEBUG] POST /admin/staff/edit/${req.params.id} - Request received`);
+    console.log(`[DEBUG] Headers:`, req.headers);
+    console.log(`[DEBUG] Body:`, req.body);
+    next();
+  },
   authenticateWeb,
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 2 }).withMessage('Last name must be at least 2 characters'),
@@ -717,6 +723,12 @@ router.post('/staff/edit/:id', [
 
 // Edit formation (web form)
 router.post('/formations/edit/:id', [
+  (req, res, next) => {
+    console.log(`[DEBUG] POST /admin/formations/edit/${req.params.id} - Request received`);
+    console.log(`[DEBUG] Headers:`, req.headers);
+    console.log(`[DEBUG] Body:`, req.body);
+    next();
+  },
   authenticateWeb,
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('description').optional().trim().isLength({ min: 2 }).withMessage('Description must be at least 2 characters'),
